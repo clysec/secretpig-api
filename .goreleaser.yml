@@ -1,5 +1,11 @@
 version: 2
 
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+    - go tool swag init --generalInfo main.go --output docs
+
 builds: 
   - id: build
     main: main.go

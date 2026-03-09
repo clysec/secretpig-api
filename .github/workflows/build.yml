@@ -58,12 +58,6 @@ jobs:
       working-directory: ui
       run: npm ci && npm run build
 
-    - name: Prepare Go build
-      run: |
-        go mod tidy
-        go mod download
-        go tool swag init --generalInfo main.go --output docs
-
     - name: Goreleaser
       if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
       uses: goreleaser/goreleaser-action@v2
