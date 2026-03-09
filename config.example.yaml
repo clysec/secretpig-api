@@ -1,0 +1,106 @@
+# SecretPig API – example configuration (YAML)
+#
+# Copy to config.yaml (or config.yml) and edit to suit your deployment.
+# Alternatively, point to any path with:  SP_CONFIG_FILE=/path/to/config.yaml
+#
+# Priority order (highest wins): environment variables > this file > built-in defaults.
+#
+# Environment variable equivalents are noted next to each field.
+
+# ── Server ────────────────────────────────────────────────────────────────────
+
+# TCP address the server listens on.
+# Default: :8080
+# Env: SP_LISTEN_ADDR  (also accepts legacy LISTEN_ADDR)
+listen_addr: ":8080"
+
+# ── Authentication ────────────────────────────────────────────────────────────
+#
+# Auth applies only to /api/v1/* endpoints.
+# /health, /swagger/*, and the UI are always public.
+#
+# Env: SP_AUTH_MODE
+# Allowed values: none | token | jwt | oidc
+auth:
+  mode: none
+
+  # ── Static bearer token ──────────────────────────────────────────────────
+  # Used when mode: token.
+  # Clients must send:  Authorization: Bearer <token>
+  # Env: SP_AUTH_TOKEN
+  token: ""
+
+  # ── JWT ──────────────────────────────────────────────────────────────────
+  # Used when mode: jwt.
+  # Provide either `secret` (HMAC-SHA256) or `public_key` (RSA / EC PEM),
+  # but not both.
+  jwt:
+    # HMAC-SHA256 shared secret.
+    # Env: SP_AUTH_JWT_SECRET
+    secret: ""
+
+    # PEM-encoded RSA or EC public key (RS256 / ES256 tokens).
+    # Env: SP_AUTH_JWT_PUBLIC_KEY
+    public_key: ""
+
+    # Expected value of the "iss" (issuer) claim. Leave empty to skip check.
+    # Env: SP_AUTH_JWT_ISSUER
+    issuer: ""
+
+    # Expected value of the "aud" (audience) claim. Leave empty to skip check.
+    # Env: SP_AUTH_JWT_AUDIENCE
+    audience: ""
+
+  # ── OpenID Connect ───────────────────────────────────────────────────────
+  # Used when mode: oidc.
+  # The server fetches keys automatically from:
+  #   {issuer}/.well-known/openid-configuration  →  jwks_uri
+  # Keys are cached for 1 hour and refreshed on unknown kid.
+  oidc:
+    # OIDC provider base URL.
+    # Env: SP_AUTH_OIDC_ISSUER
+    issuer: ""
+
+    # Expected audience (usually your API's client ID).
+    # Env: SP_AUTH_OIDC_CLIENT_ID
+    client_id: ""
+
+# ── Examples ──────────────────────────────────────────────────────────────────
+#
+# Token auth:
+#   auth:
+#     mode: token
+#     token: "super-secret-api-key"
+#
+# JWT (HMAC):
+#   auth:
+#     mode: jwt
+#     jwt:
+#       secret: "my-hmac-secret"
+#       issuer: "https://my-auth-server.example.com"
+#       audience: "secretpig-api"
+#
+# JWT (RSA public key):
+#   auth:
+#     mode: jwt
+#     jwt:
+#       public_key: |
+#         -----BEGIN PUBLIC KEY-----
+#         MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+#         -----END PUBLIC KEY-----
+#       issuer: "https://my-auth-server.example.com"
+#       audience: "secretpig-api"
+#
+# OIDC (e.g. Google):
+#   auth:
+#     mode: oidc
+#     oidc:
+#       issuer: "https://accounts.google.com"
+#       client_id: "123456789-abc.apps.googleusercontent.com"
+#
+# OIDC (e.g. Keycloak):
+#   auth:
+#     mode: oidc
+#     oidc:
+#       issuer: "https://keycloak.example.com/realms/myrealm"
+#       client_id: "secretpig-api"

@@ -1,0 +1,90 @@
+{
+  "_comment": [
+    "SecretPig API – example configuration (JSON)",
+    "",
+    "Copy to config.json and edit to suit your deployment.",
+    "Alternatively, point to any path with:  SP_CONFIG_FILE=/path/to/config.json",
+    "",
+    "Priority order (highest wins): environment variables > this file > built-in defaults.",
+    "Auth applies only to /api/v1/* endpoints.",
+    "/health, /swagger/*, and the UI are always public."
+  ],
+
+  "listen_addr": ":8080",
+
+  "auth": {
+    "_comment_mode": "Allowed values: none | token | jwt | oidc  (env: SP_AUTH_MODE)",
+    "mode": "none",
+
+    "_comment_token": "Used when mode is 'token'. Clients send: Authorization: Bearer <value>  (env: SP_AUTH_TOKEN)",
+    "token": "",
+
+    "jwt": {
+      "_comment": "Used when mode is 'jwt'. Set either 'secret' (HMAC) or 'public_key' (RSA/EC PEM), not both.",
+      "_comment_secret_env":     "env: SP_AUTH_JWT_SECRET",
+      "_comment_public_key_env": "env: SP_AUTH_JWT_PUBLIC_KEY",
+      "_comment_issuer_env":     "env: SP_AUTH_JWT_ISSUER",
+      "_comment_audience_env":   "env: SP_AUTH_JWT_AUDIENCE",
+      "secret": "",
+      "public_key": "",
+      "issuer": "",
+      "audience": ""
+    },
+
+    "oidc": {
+      "_comment": "Used when mode is 'oidc'. Keys are fetched from {issuer}/.well-known/openid-configuration.",
+      "_comment_issuer_env":    "env: SP_AUTH_OIDC_ISSUER",
+      "_comment_client_id_env": "env: SP_AUTH_OIDC_CLIENT_ID",
+      "issuer": "",
+      "client_id": ""
+    }
+  },
+
+  "_examples": {
+    "token_auth": {
+      "listen_addr": ":8080",
+      "auth": {
+        "mode": "token",
+        "token": "super-secret-api-key"
+      }
+    },
+    "jwt_hmac": {
+      "auth": {
+        "mode": "jwt",
+        "jwt": {
+          "secret": "my-hmac-secret",
+          "issuer": "https://my-auth-server.example.com",
+          "audience": "secretpig-api"
+        }
+      }
+    },
+    "jwt_rsa": {
+      "auth": {
+        "mode": "jwt",
+        "jwt": {
+          "public_key": "-----BEGIN PUBLIC KEY-----\nMIIBIjAN...\n-----END PUBLIC KEY-----",
+          "issuer": "https://my-auth-server.example.com",
+          "audience": "secretpig-api"
+        }
+      }
+    },
+    "oidc_google": {
+      "auth": {
+        "mode": "oidc",
+        "oidc": {
+          "issuer": "https://accounts.google.com",
+          "client_id": "123456789-abc.apps.googleusercontent.com"
+        }
+      }
+    },
+    "oidc_keycloak": {
+      "auth": {
+        "mode": "oidc",
+        "oidc": {
+          "issuer": "https://keycloak.example.com/realms/myrealm",
+          "client_id": "secretpig-api"
+        }
+      }
+    }
+  }
+}

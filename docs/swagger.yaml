@@ -1,0 +1,656 @@
+basePath: /
+definitions:
+  handlers.HealthResponse:
+    properties:
+      status:
+        example: ok
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+    type: object
+  models.DockerConfig:
+    properties:
+      bearer_token:
+        description: BearerToken is a bearer token for registry authentication.
+        type: string
+      images:
+        description: Images is the list of Docker image references to scan.
+        example:
+        - '["trufflesecurity/trufflehog:latest"]'
+        items:
+          type: string
+        type: array
+      use_docker_keychain:
+        description: UseDockerKeychain uses the local Docker credential store for
+          authentication.
+        example: false
+        type: boolean
+    required:
+    - images
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        description: Error is a human-readable description of what went wrong.
+        example: invalid source type
+        type: string
+    type: object
+  models.FilesystemConfig:
+    properties:
+      exclude_paths_file:
+        description: ExcludePathsFile is a path to a file listing regexp patterns
+          of paths to exclude.
+        type: string
+      include_paths_file:
+        description: IncludePathsFile is a path to a file listing regexp patterns
+          of paths to include.
+        type: string
+      paths:
+        description: Paths is the list of directories or files to scan.
+        example:
+        - '["/home/user/projects"]'
+        items:
+          type: string
+        type: array
+    required:
+    - paths
+    type: object
+  models.Finding:
+    properties:
+      decoder_type:
+        description: DecoderType describes how the chunk was decoded before detection.
+        example: PLAIN
+        type: string
+      detector_name:
+        description: DetectorName is the human-readable name of the detector that
+          found this secret.
+        example: GitHubOauth2
+        type: string
+      detector_type:
+        description: DetectorType is the numeric identifier string of the detector.
+        example: "18"
+        type: string
+      extra_data:
+        additionalProperties:
+          type: string
+        description: ExtraData holds additional key-value pairs returned by the detector.
+        type: object
+      raw:
+        description: Raw is the raw secret value (may be empty when redacted).
+        example: ghp_xxxx
+        type: string
+      raw_v2:
+        description: RawV2 is an alternative raw value used by some detectors.
+        type: string
+      redacted:
+        description: Redacted is a censored version of the secret safe for logging.
+        example: ghp_****
+        type: string
+      source_metadata:
+        additionalProperties: true
+        description: |-
+          SourceMetadata contains source-specific location information
+          (file path, line number, commit hash, S3 key, etc.).
+        type: object
+      source_name:
+        description: SourceName is the name/label of the source instance.
+        example: https://github.com/org/repo
+        type: string
+      source_type:
+        description: SourceType identifies the type of source where the secret was
+          found.
+        example: git
+        type: string
+      verified:
+        description: Verified indicates whether the credential was verified to be
+          active.
+        example: true
+        type: boolean
+    type: object
+  models.GitConfig:
+    properties:
+      bare:
+        description: Bare indicates the repository is a bare clone.
+        example: false
+        type: boolean
+      base_ref:
+        description: BaseRef is the reference to scan from (enables diff mode).
+        example: ""
+        type: string
+      exclude_globs:
+        description: ExcludeGlobs is a comma-separated list of globs to exclude from
+          git log output.
+        example: '*.pdf,*.png'
+        type: string
+      exclude_paths_file:
+        description: ExcludePathsFile is the path to a file containing regexps of
+          paths to exclude.
+        type: string
+      head_ref:
+        description: HeadRef is the reference to scan up to (branch, tag, or commit
+          SHA).
+        example: main
+        type: string
+      include_paths_file:
+        description: IncludePathsFile is the path to a file containing regexps of
+          paths to include.
+        type: string
+      max_depth:
+        description: MaxDepth limits how many commits back to scan (0 = unlimited).
+        example: 0
+        type: integer
+      skip_binaries:
+        description: SkipBinaries skips binary file content.
+        example: false
+        type: boolean
+      uri:
+        description: URI is the repository URL or local path (file://, http://, https://,
+          ssh://).
+        example: https://github.com/trufflesecurity/test_keys
+        type: string
+    required:
+    - uri
+    type: object
+  models.GitHubConfig:
+    properties:
+      comments_timeframe_days:
+        description: CommentsTimeframeDays limits how many days of comments to include.
+        example: 0
+        type: integer
+      concurrency:
+        description: Concurrency controls per-source worker count.
+        example: 0
+        type: integer
+      endpoint:
+        description: 'Endpoint is the GitHub API base URL (for GHES; default: https://api.github.com).'
+        example: https://api.github.com
+        type: string
+      exclude_repos:
+        description: ExcludeRepos skips these repos.
+        items:
+          type: string
+        type: array
+      include_forks:
+        description: IncludeForks includes forked repositories.
+        example: false
+        type: boolean
+      include_gist_comments:
+        description: IncludeGistComments includes GitHub gist comment bodies.
+        example: false
+        type: boolean
+      include_issue_comments:
+        description: IncludeIssueComments includes issue comment bodies.
+        example: false
+        type: boolean
+      include_members:
+        description: IncludeMembers also scans repositories of organization members.
+        example: false
+        type: boolean
+      include_pull_request_comments:
+        description: IncludePullRequestComments includes pull-request comment bodies.
+        example: false
+        type: boolean
+      include_repos:
+        description: IncludeRepos filters to only these repos within the org.
+        items:
+          type: string
+        type: array
+      include_wikis:
+        description: IncludeWikis includes GitHub wiki pages.
+        example: false
+        type: boolean
+      orgs:
+        description: Orgs is a list of GitHub organizations to scan.
+        example:
+        - '["trufflesecurity"]'
+        items:
+          type: string
+        type: array
+      repos:
+        description: Repos is a list of specific repositories to scan (owner/repo
+          format).
+        example:
+        - '["trufflesecurity/trufflehog"]'
+        items:
+          type: string
+        type: array
+      skip_binaries:
+        description: SkipBinaries skips binary file content.
+        example: false
+        type: boolean
+      token:
+        description: Token is a GitHub personal access token.
+        example: ghp_xxxx
+        type: string
+    type: object
+  models.GitLabConfig:
+    properties:
+      endpoint:
+        description: 'Endpoint is the GitLab instance base URL (default: https://gitlab.com).'
+        example: https://gitlab.com
+        type: string
+      exclude_repos:
+        description: ExcludeRepos skips these repositories.
+        items:
+          type: string
+        type: array
+      include_repos:
+        description: IncludeRepos filters to only these repositories.
+        items:
+          type: string
+        type: array
+      repos:
+        description: Repos is a list of specific repository URLs to scan.
+        items:
+          type: string
+        type: array
+      skip_binaries:
+        description: SkipBinaries skips binary file content.
+        example: false
+        type: boolean
+      token:
+        description: Token is the GitLab personal access token (required).
+        example: glpat-xxxx
+        type: string
+    required:
+    - token
+    type: object
+  models.InstantScanResponse:
+    properties:
+      findings:
+        description: Findings is the list of discovered secrets.
+        items:
+          $ref: '#/definitions/models.Finding'
+        type: array
+      metrics:
+        allOf:
+        - $ref: '#/definitions/models.ScanMetrics'
+        description: Metrics contains aggregate scan statistics.
+    type: object
+  models.Job:
+    properties:
+      created_at:
+        description: CreatedAt is the time the job was created.
+        type: string
+      ended_at:
+        description: EndedAt is the time the scan finished (nil if not yet done).
+        type: string
+      error:
+        description: Error describes the failure reason when Status == "failed".
+        type: string
+      findings:
+        description: Findings is the list of discovered secrets (populated after completion).
+        items:
+          $ref: '#/definitions/models.Finding'
+        type: array
+      id:
+        description: ID is the unique job identifier (UUID).
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      metrics:
+        allOf:
+        - $ref: '#/definitions/models.ScanMetrics'
+        description: Metrics contains aggregate statistics (populated after completion).
+      request:
+        allOf:
+        - $ref: '#/definitions/models.ScanRequest'
+        description: Request is the original scan request.
+      started_at:
+        description: StartedAt is the time the scan started (nil if still pending).
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.JobStatus'
+        description: Status is the current lifecycle state.
+        example: running
+    type: object
+  models.JobStatus:
+    enum:
+    - pending
+    - running
+    - completed
+    - failed
+    type: string
+    x-enum-varnames:
+    - JobStatusPending
+    - JobStatusRunning
+    - JobStatusCompleted
+    - JobStatusFailed
+  models.JobSummary:
+    properties:
+      created_at:
+        description: CreatedAt is the time the job was created.
+        type: string
+      ended_at:
+        description: EndedAt is the time the scan finished (nil if not yet done).
+        type: string
+      findings_count:
+        description: FindingsCount is the number of findings (only set after completion).
+        type: integer
+      id:
+        description: ID is the unique job identifier.
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      source:
+        allOf:
+        - $ref: '#/definitions/models.SourceType'
+        description: Source identifies the source type used for this scan.
+      status:
+        allOf:
+        - $ref: '#/definitions/models.JobStatus'
+        description: Status is the current lifecycle state.
+        example: completed
+    type: object
+  models.ListJobsResponse:
+    properties:
+      jobs:
+        description: Jobs is the list of known jobs.
+        items:
+          $ref: '#/definitions/models.JobSummary'
+        type: array
+      total:
+        description: Total is the total number of jobs.
+        type: integer
+    type: object
+  models.S3Config:
+    properties:
+      buckets:
+        description: Buckets is the list of buckets to scan (empty = all accessible
+          buckets).
+        example:
+        - '["my-bucket"]'
+        items:
+          type: string
+        type: array
+      cloud_cred:
+        description: CloudCred uses the ambient cloud credentials (IAM role, env vars,
+          etc.).
+        example: false
+        type: boolean
+      ignore_buckets:
+        description: IgnoreBuckets skips these buckets.
+        items:
+          type: string
+        type: array
+      key:
+        description: Key is the AWS access key ID (leave empty to use instance role
+          / env vars).
+        example: AKIAIOSFODNN7EXAMPLE
+        type: string
+      roles:
+        description: Roles is a list of IAM role ARNs to assume before scanning.
+        items:
+          type: string
+        type: array
+      secret:
+        description: Secret is the AWS secret access key.
+        example: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+        type: string
+      session_token:
+        description: SessionToken is an optional temporary session token.
+        type: string
+    type: object
+  models.ScanMetrics:
+    properties:
+      bytes_scanned:
+        description: BytesScanned is the total number of bytes processed.
+        type: integer
+      chunks_scanned:
+        description: ChunksScanned is the total number of data chunks examined.
+        type: integer
+      findings_count:
+        description: FindingsCount is the total number of findings before deduplication.
+        type: integer
+    type: object
+  models.ScanRequest:
+    properties:
+      concurrency:
+        description: 'Concurrency is the number of concurrent scanner workers (default:
+          8).'
+        example: 8
+        type: integer
+      docker:
+        allOf:
+        - $ref: '#/definitions/models.DockerConfig'
+        description: Docker holds config for the "docker" source.
+      filesystem:
+        allOf:
+        - $ref: '#/definitions/models.FilesystemConfig'
+        description: Filesystem holds config for the "filesystem" source.
+      filter_unverified:
+        description: FilterUnverified returns only the first unverified result per
+          chunk per detector.
+        example: false
+        type: boolean
+      git:
+        allOf:
+        - $ref: '#/definitions/models.GitConfig'
+        description: Git holds config for the "git" source.
+      github:
+        allOf:
+        - $ref: '#/definitions/models.GitHubConfig'
+        description: GitHub holds config for the "github" source.
+      gitlab:
+        allOf:
+        - $ref: '#/definitions/models.GitLabConfig'
+        description: GitLab holds config for the "gitlab" source.
+      s3:
+        allOf:
+        - $ref: '#/definitions/models.S3Config'
+        description: S3 holds config for the "s3" source.
+      source:
+        allOf:
+        - $ref: '#/definitions/models.SourceType'
+        description: |-
+          Source selects the TruffleHog source engine.
+          Enum: git, github, filesystem, s3, docker, gitlab
+        example: git
+      verify:
+        description: Verify controls whether discovered credentials are verified against
+          live APIs.
+        example: true
+        type: boolean
+    required:
+    - source
+    type: object
+  models.SourceType:
+    enum:
+    - git
+    - github
+    - filesystem
+    - s3
+    - docker
+    - gitlab
+    type: string
+    x-enum-varnames:
+    - SourceGit
+    - SourceGitHub
+    - SourceFilesystem
+    - SourceS3
+    - SourceDocker
+    - SourceGitLab
+  models.StartScanResponse:
+    properties:
+      job_id:
+        description: JobID is the UUID of the created job.
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.JobStatus'
+        description: Status is always "pending" immediately after creation.
+        example: pending
+    type: object
+info:
+  contact:
+    name: TruffleHog API
+    url: https://github.com/clysec/secretpig-api
+  description: |-
+    A REST API wrapper around the TruffleHog v3 secret scanner.
+    Supports Git, GitHub, GitLab, Filesystem, S3, and Docker sources.
+    Scans can be run synchronously (/scan/instant) or asynchronously (/scan/start + /scan/poll/{jobID}).
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: TruffleHog API
+  version: 1.0.0
+paths:
+  /api/v1/jobs:
+    get:
+      description: Returns a summary of every known scan job.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ListJobsResponse'
+      summary: List all scan jobs
+      tags:
+      - jobs
+  /api/v1/jobs/{jobID}:
+    delete:
+      description: Removes a job and its results from the in-memory store.
+      parameters:
+      - description: Job ID
+        in: path
+        name: jobID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Delete a scan job
+      tags:
+      - jobs
+    get:
+      description: Returns the full details of the specified scan job, including all
+        findings once completed.
+      parameters:
+      - description: Job ID
+        in: path
+        name: jobID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Job'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get a scan job
+      tags:
+      - jobs
+  /api/v1/scan/instant:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Runs a TruffleHog scan and blocks until it completes, returning all findings inline.
+        Use this for short-lived scans. For large repositories prefer /scan/start.
+      parameters:
+      - description: Scan parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ScanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.InstantScanResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Run a synchronous scan
+      tags:
+      - scan
+  /api/v1/scan/poll/{jobID}:
+    get:
+      description: Returns the current status and, once completed, all findings for
+        the given job.
+      parameters:
+      - description: Job ID
+        in: path
+        name: jobID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Job'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Poll an asynchronous scan job
+      tags:
+      - scan
+  /api/v1/scan/start:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Enqueues a TruffleHog scan and returns a job ID immediately.
+        Poll the job status with GET /api/v1/scan/poll/{jobID}.
+      parameters:
+      - description: Scan parameters
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ScanRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/models.StartScanResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Start an asynchronous scan
+      tags:
+      - scan
+  /health:
+    get:
+      description: Returns the service health status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+schemes:
+- http
+- https
+swagger: "2.0"

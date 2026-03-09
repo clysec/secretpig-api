@@ -1,0 +1,908 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "A REST API wrapper around the TruffleHog v3 secret scanner.\nSupports Git, GitHub, GitLab, Filesystem, S3, and Docker sources.\nScans can be run synchronously (/scan/instant) or asynchronously (/scan/start + /scan/poll/{jobID}).",
+        "title": "TruffleHog API",
+        "contact": {
+            "name": "TruffleHog API",
+            "url": "https://github.com/clysec/secretpig-api"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
+        "version": "1.0.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/api/v1/jobs": {
+            "get": {
+                "description": "Returns a summary of every known scan job.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "List all scan jobs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ListJobsResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/jobs/{jobID}": {
+            "get": {
+                "description": "Returns the full details of the specified scan job, including all findings once completed.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Get a scan job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "jobID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Job"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes a job and its results from the in-memory store.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Delete a scan job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "jobID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/scan/instant": {
+            "post": {
+                "description": "Runs a TruffleHog scan and blocks until it completes, returning all findings inline.\nUse this for short-lived scans. For large repositories prefer /scan/start.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scan"
+                ],
+                "summary": "Run a synchronous scan",
+                "parameters": [
+                    {
+                        "description": "Scan parameters",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ScanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.InstantScanResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/scan/poll/{jobID}": {
+            "get": {
+                "description": "Returns the current status and, once completed, all findings for the given job.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scan"
+                ],
+                "summary": "Poll an asynchronous scan job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "jobID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Job"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/scan/start": {
+            "post": {
+                "description": "Enqueues a TruffleHog scan and returns a job ID immediately.\nPoll the job status with GET /api/v1/scan/poll/{jobID}.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "scan"
+                ],
+                "summary": "Start an asynchronous scan",
+                "parameters": [
+                    {
+                        "description": "Scan parameters",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.ScanRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/models.StartScanResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Returns the service health status.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.HealthResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handlers.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "ok"
+                },
+                "version": {
+                    "type": "string",
+                    "example": "1.0.0"
+                }
+            }
+        },
+        "models.DockerConfig": {
+            "type": "object",
+            "required": [
+                "images"
+            ],
+            "properties": {
+                "bearer_token": {
+                    "description": "BearerToken is a bearer token for registry authentication.",
+                    "type": "string"
+                },
+                "images": {
+                    "description": "Images is the list of Docker image references to scan.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"trufflesecurity/trufflehog:latest\"]"
+                    ]
+                },
+                "use_docker_keychain": {
+                    "description": "UseDockerKeychain uses the local Docker credential store for authentication.",
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "models.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "description": "Error is a human-readable description of what went wrong.",
+                    "type": "string",
+                    "example": "invalid source type"
+                }
+            }
+        },
+        "models.FilesystemConfig": {
+            "type": "object",
+            "required": [
+                "paths"
+            ],
+            "properties": {
+                "exclude_paths_file": {
+                    "description": "ExcludePathsFile is a path to a file listing regexp patterns of paths to exclude.",
+                    "type": "string"
+                },
+                "include_paths_file": {
+                    "description": "IncludePathsFile is a path to a file listing regexp patterns of paths to include.",
+                    "type": "string"
+                },
+                "paths": {
+                    "description": "Paths is the list of directories or files to scan.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"/home/user/projects\"]"
+                    ]
+                }
+            }
+        },
+        "models.Finding": {
+            "type": "object",
+            "properties": {
+                "decoder_type": {
+                    "description": "DecoderType describes how the chunk was decoded before detection.",
+                    "type": "string",
+                    "example": "PLAIN"
+                },
+                "detector_name": {
+                    "description": "DetectorName is the human-readable name of the detector that found this secret.",
+                    "type": "string",
+                    "example": "GitHubOauth2"
+                },
+                "detector_type": {
+                    "description": "DetectorType is the numeric identifier string of the detector.",
+                    "type": "string",
+                    "example": "18"
+                },
+                "extra_data": {
+                    "description": "ExtraData holds additional key-value pairs returned by the detector.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "raw": {
+                    "description": "Raw is the raw secret value (may be empty when redacted).",
+                    "type": "string",
+                    "example": "ghp_xxxx"
+                },
+                "raw_v2": {
+                    "description": "RawV2 is an alternative raw value used by some detectors.",
+                    "type": "string"
+                },
+                "redacted": {
+                    "description": "Redacted is a censored version of the secret safe for logging.",
+                    "type": "string",
+                    "example": "ghp_****"
+                },
+                "source_metadata": {
+                    "description": "SourceMetadata contains source-specific location information\n(file path, line number, commit hash, S3 key, etc.).",
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "source_name": {
+                    "description": "SourceName is the name/label of the source instance.",
+                    "type": "string",
+                    "example": "https://github.com/org/repo"
+                },
+                "source_type": {
+                    "description": "SourceType identifies the type of source where the secret was found.",
+                    "type": "string",
+                    "example": "git"
+                },
+                "verified": {
+                    "description": "Verified indicates whether the credential was verified to be active.",
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "models.GitConfig": {
+            "type": "object",
+            "required": [
+                "uri"
+            ],
+            "properties": {
+                "bare": {
+                    "description": "Bare indicates the repository is a bare clone.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "base_ref": {
+                    "description": "BaseRef is the reference to scan from (enables diff mode).",
+                    "type": "string",
+                    "example": ""
+                },
+                "exclude_globs": {
+                    "description": "ExcludeGlobs is a comma-separated list of globs to exclude from git log output.",
+                    "type": "string",
+                    "example": "*.pdf,*.png"
+                },
+                "exclude_paths_file": {
+                    "description": "ExcludePathsFile is the path to a file containing regexps of paths to exclude.",
+                    "type": "string"
+                },
+                "head_ref": {
+                    "description": "HeadRef is the reference to scan up to (branch, tag, or commit SHA).",
+                    "type": "string",
+                    "example": "main"
+                },
+                "include_paths_file": {
+                    "description": "IncludePathsFile is the path to a file containing regexps of paths to include.",
+                    "type": "string"
+                },
+                "max_depth": {
+                    "description": "MaxDepth limits how many commits back to scan (0 = unlimited).",
+                    "type": "integer",
+                    "example": 0
+                },
+                "skip_binaries": {
+                    "description": "SkipBinaries skips binary file content.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "uri": {
+                    "description": "URI is the repository URL or local path (file://, http://, https://, ssh://).",
+                    "type": "string",
+                    "example": "https://github.com/trufflesecurity/test_keys"
+                }
+            }
+        },
+        "models.GitHubConfig": {
+            "type": "object",
+            "properties": {
+                "comments_timeframe_days": {
+                    "description": "CommentsTimeframeDays limits how many days of comments to include.",
+                    "type": "integer",
+                    "example": 0
+                },
+                "concurrency": {
+                    "description": "Concurrency controls per-source worker count.",
+                    "type": "integer",
+                    "example": 0
+                },
+                "endpoint": {
+                    "description": "Endpoint is the GitHub API base URL (for GHES; default: https://api.github.com).",
+                    "type": "string",
+                    "example": "https://api.github.com"
+                },
+                "exclude_repos": {
+                    "description": "ExcludeRepos skips these repos.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "include_forks": {
+                    "description": "IncludeForks includes forked repositories.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "include_gist_comments": {
+                    "description": "IncludeGistComments includes GitHub gist comment bodies.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "include_issue_comments": {
+                    "description": "IncludeIssueComments includes issue comment bodies.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "include_members": {
+                    "description": "IncludeMembers also scans repositories of organization members.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "include_pull_request_comments": {
+                    "description": "IncludePullRequestComments includes pull-request comment bodies.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "include_repos": {
+                    "description": "IncludeRepos filters to only these repos within the org.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "include_wikis": {
+                    "description": "IncludeWikis includes GitHub wiki pages.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "orgs": {
+                    "description": "Orgs is a list of GitHub organizations to scan.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"trufflesecurity\"]"
+                    ]
+                },
+                "repos": {
+                    "description": "Repos is a list of specific repositories to scan (owner/repo format).",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"trufflesecurity/trufflehog\"]"
+                    ]
+                },
+                "skip_binaries": {
+                    "description": "SkipBinaries skips binary file content.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "token": {
+                    "description": "Token is a GitHub personal access token.",
+                    "type": "string",
+                    "example": "ghp_xxxx"
+                }
+            }
+        },
+        "models.GitLabConfig": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "endpoint": {
+                    "description": "Endpoint is the GitLab instance base URL (default: https://gitlab.com).",
+                    "type": "string",
+                    "example": "https://gitlab.com"
+                },
+                "exclude_repos": {
+                    "description": "ExcludeRepos skips these repositories.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "include_repos": {
+                    "description": "IncludeRepos filters to only these repositories.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "repos": {
+                    "description": "Repos is a list of specific repository URLs to scan.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "skip_binaries": {
+                    "description": "SkipBinaries skips binary file content.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "token": {
+                    "description": "Token is the GitLab personal access token (required).",
+                    "type": "string",
+                    "example": "glpat-xxxx"
+                }
+            }
+        },
+        "models.InstantScanResponse": {
+            "type": "object",
+            "properties": {
+                "findings": {
+                    "description": "Findings is the list of discovered secrets.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Finding"
+                    }
+                },
+                "metrics": {
+                    "description": "Metrics contains aggregate scan statistics.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ScanMetrics"
+                        }
+                    ]
+                }
+            }
+        },
+        "models.Job": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "description": "CreatedAt is the time the job was created.",
+                    "type": "string"
+                },
+                "ended_at": {
+                    "description": "EndedAt is the time the scan finished (nil if not yet done).",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "Error describes the failure reason when Status == \"failed\".",
+                    "type": "string"
+                },
+                "findings": {
+                    "description": "Findings is the list of discovered secrets (populated after completion).",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Finding"
+                    }
+                },
+                "id": {
+                    "description": "ID is the unique job identifier (UUID).",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "metrics": {
+                    "description": "Metrics contains aggregate statistics (populated after completion).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ScanMetrics"
+                        }
+                    ]
+                },
+                "request": {
+                    "description": "Request is the original scan request.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.ScanRequest"
+                        }
+                    ]
+                },
+                "started_at": {
+                    "description": "StartedAt is the time the scan started (nil if still pending).",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "Status is the current lifecycle state.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JobStatus"
+                        }
+                    ],
+                    "example": "running"
+                }
+            }
+        },
+        "models.JobStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "running",
+                "completed",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "JobStatusPending",
+                "JobStatusRunning",
+                "JobStatusCompleted",
+                "JobStatusFailed"
+            ]
+        },
+        "models.JobSummary": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "description": "CreatedAt is the time the job was created.",
+                    "type": "string"
+                },
+                "ended_at": {
+                    "description": "EndedAt is the time the scan finished (nil if not yet done).",
+                    "type": "string"
+                },
+                "findings_count": {
+                    "description": "FindingsCount is the number of findings (only set after completion).",
+                    "type": "integer"
+                },
+                "id": {
+                    "description": "ID is the unique job identifier.",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "source": {
+                    "description": "Source identifies the source type used for this scan.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.SourceType"
+                        }
+                    ]
+                },
+                "status": {
+                    "description": "Status is the current lifecycle state.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JobStatus"
+                        }
+                    ],
+                    "example": "completed"
+                }
+            }
+        },
+        "models.ListJobsResponse": {
+            "type": "object",
+            "properties": {
+                "jobs": {
+                    "description": "Jobs is the list of known jobs.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.JobSummary"
+                    }
+                },
+                "total": {
+                    "description": "Total is the total number of jobs.",
+                    "type": "integer"
+                }
+            }
+        },
+        "models.S3Config": {
+            "type": "object",
+            "properties": {
+                "buckets": {
+                    "description": "Buckets is the list of buckets to scan (empty = all accessible buckets).",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"my-bucket\"]"
+                    ]
+                },
+                "cloud_cred": {
+                    "description": "CloudCred uses the ambient cloud credentials (IAM role, env vars, etc.).",
+                    "type": "boolean",
+                    "example": false
+                },
+                "ignore_buckets": {
+                    "description": "IgnoreBuckets skips these buckets.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "key": {
+                    "description": "Key is the AWS access key ID (leave empty to use instance role / env vars).",
+                    "type": "string",
+                    "example": "AKIAIOSFODNN7EXAMPLE"
+                },
+                "roles": {
+                    "description": "Roles is a list of IAM role ARNs to assume before scanning.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "secret": {
+                    "description": "Secret is the AWS secret access key.",
+                    "type": "string",
+                    "example": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                },
+                "session_token": {
+                    "description": "SessionToken is an optional temporary session token.",
+                    "type": "string"
+                }
+            }
+        },
+        "models.ScanMetrics": {
+            "type": "object",
+            "properties": {
+                "bytes_scanned": {
+                    "description": "BytesScanned is the total number of bytes processed.",
+                    "type": "integer"
+                },
+                "chunks_scanned": {
+                    "description": "ChunksScanned is the total number of data chunks examined.",
+                    "type": "integer"
+                },
+                "findings_count": {
+                    "description": "FindingsCount is the total number of findings before deduplication.",
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ScanRequest": {
+            "type": "object",
+            "required": [
+                "source"
+            ],
+            "properties": {
+                "concurrency": {
+                    "description": "Concurrency is the number of concurrent scanner workers (default: 8).",
+                    "type": "integer",
+                    "example": 8
+                },
+                "docker": {
+                    "description": "Docker holds config for the \"docker\" source.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.DockerConfig"
+                        }
+                    ]
+                },
+                "filesystem": {
+                    "description": "Filesystem holds config for the \"filesystem\" source.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.FilesystemConfig"
+                        }
+                    ]
+                },
+                "filter_unverified": {
+                    "description": "FilterUnverified returns only the first unverified result per chunk per detector.",
+                    "type": "boolean",
+                    "example": false
+                },
+                "git": {
+                    "description": "Git holds config for the \"git\" source.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.GitConfig"
+                        }
+                    ]
+                },
+                "github": {
+                    "description": "GitHub holds config for the \"github\" source.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.GitHubConfig"
+                        }
+                    ]
+                },
+                "gitlab": {
+                    "description": "GitLab holds config for the \"gitlab\" source.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.GitLabConfig"
+                        }
+                    ]
+                },
+                "s3": {
+                    "description": "S3 holds config for the \"s3\" source.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.S3Config"
+                        }
+                    ]
+                },
+                "source": {
+                    "description": "Source selects the TruffleHog source engine.\nEnum: git, github, filesystem, s3, docker, gitlab",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.SourceType"
+                        }
+                    ],
+                    "example": "git"
+                },
+                "verify": {
+                    "description": "Verify controls whether discovered credentials are verified against live APIs.",
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "models.SourceType": {
+            "type": "string",
+            "enum": [
+                "git",
+                "github",
+                "filesystem",
+                "s3",
+                "docker",
+                "gitlab"
+            ],
+            "x-enum-varnames": [
+                "SourceGit",
+                "SourceGitHub",
+                "SourceFilesystem",
+                "SourceS3",
+                "SourceDocker",
+                "SourceGitLab"
+            ]
+        },
+        "models.StartScanResponse": {
+            "type": "object",
+            "properties": {
+                "job_id": {
+                    "description": "JobID is the UUID of the created job.",
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "status": {
+                    "description": "Status is always \"pending\" immediately after creation.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.JobStatus"
+                        }
+                    ],
+                    "example": "pending"
+                }
+            }
+        }
+    }
+}
