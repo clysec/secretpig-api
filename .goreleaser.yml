@@ -12,15 +12,15 @@ builds:
       - arm64
       - amd64
 
-  - id: winbuild
-    main: main.go
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - windows
-    goarch:
-      - amd64
-      - arm64
+  # - id: winbuild
+  #   main: main.go
+  #   env:
+  #     - CGO_ENABLED=0
+  #   goos:
+  #     - windows
+  #   goarch:
+  #     - amd64
+  #     - arm64
 
 archives:
   - formats: [ tar.gz, binary ]
