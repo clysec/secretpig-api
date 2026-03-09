@@ -19,3 +19,4 @@ ui/.env
 !docs/*.yml
 dist/
 !/config.example.*
+!/.goreleaser.yml
