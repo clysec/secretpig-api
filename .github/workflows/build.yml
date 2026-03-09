@@ -3,6 +3,8 @@ name: Build and Publish Packages
 on:
   push:
     tags: ["*.*.*"]
+    branches:
+      - main
 
 jobs:
   build:
@@ -25,6 +27,7 @@ jobs:
       with:
         node-version: "24"
         cache: "npm"
+        cache-dependency-path: ui/package-lock.json
       id: node
 
     - name: Install docker
@@ -62,9 +65,17 @@ jobs:
         go tool swag init --generalInfo main.go --output docs
 
     - name: Goreleaser
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
       uses: goreleaser/goreleaser-action@v2
       with:
         args: release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
  
+    - name: Goreleaser (on push to main)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: goreleaser/goreleaser-action@v2
+      with:
+        args: release --snapshot
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
