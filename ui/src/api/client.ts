@@ -7,9 +7,27 @@ import type {
   HealthResponse,
 } from '../types'
 
+export interface CheckAuthResponse {
+  auth_required: boolean
+  mode: string
+}
+
+let _token: string | null = null
+
+export function setApiToken(token: string | null) {
+  _token = token
+}
+
+export function getApiToken(): string | null {
+  return _token
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const authHeader: Record<string, string> = _token
+    ? { Authorization: `Bearer ${_token}` }
+    : {}
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { 'Content-Type': 'application/json', ...authHeader, ...init?.headers },
     ...init,
   })
   if (!res.ok) {
@@ -23,6 +41,10 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export const api = {
   health(): Promise<HealthResponse> {
     return request('/health')
+  },
+
+  checkAuth(): Promise<CheckAuthResponse> {
+    return request('/api/check_auth')
   },
 
   instant(req: ScanRequest): Promise<InstantScanResponse> {

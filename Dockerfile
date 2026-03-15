@@ -1,11 +1,8 @@
-FROM alpine:latest AS get-ca
+FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates && update-ca-certificates --fresh
-
-FROM scratch
+RUN apk --no-cache add ca-certificates git curl bash yq jq && update-ca-certificates --fresh
 
 ARG TARGETPLATFORM
 COPY $TARGETPLATFORM/secretpig-api /usr/bin/secretpig
-COPY --from=get-ca /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 ENTRYPOINT ["/usr/bin/secretpig"]

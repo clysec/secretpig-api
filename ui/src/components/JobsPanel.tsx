@@ -14,10 +14,11 @@ interface JobEntry {
 interface Props {
   jobIds: string[]
   onJobComplete: (jobId: string, findings: Finding[]) => void
+  onJobFail?: (jobId: string, error: string) => void
   onJobRemove: (jobId: string) => void
 }
 
-export default function JobsPanel({ jobIds, onJobComplete, onJobRemove }: Props) {
+export default function JobsPanel({ jobIds, onJobComplete, onJobFail, onJobRemove }: Props) {
   const [jobs, setJobs] = useState<Record<string, JobEntry>>(() =>
     Object.fromEntries(jobIds.map(id => [id, { id, status: 'pending', findingsCount: 0 }])),
   )
@@ -56,6 +57,7 @@ export default function JobsPanel({ jobIds, onJobComplete, onJobRemove }: Props)
               entry={jobs[id]}
               onUpdate={entry => setJobs(prev => ({ ...prev, [id]: entry }))}
               onComplete={findings => onJobComplete(id, findings)}
+              onFail={msg => onJobFail?.(id, msg)}
               onRemove={() => onJobRemove(id)}
             />
           ))}
@@ -70,12 +72,14 @@ function JobRow({
   entry,
   onUpdate,
   onComplete,
+  onFail,
   onRemove,
 }: {
   jobId: string
   entry?: JobEntry
   onUpdate: (e: JobEntry) => void
   onComplete: (findings: Finding[]) => void
+  onFail?: (msg: string) => void
   onRemove: () => void
 }) {
   const status = entry?.status ?? 'pending'
@@ -91,8 +95,9 @@ function JobRow({
   const handleError = useCallback(
     (msg: string) => {
       onUpdate({ id: jobId, status: 'failed', error: msg, findingsCount: 0 })
+      onFail?.(msg)
     },
-    [jobId, onUpdate],
+    [jobId, onUpdate, onFail],
   )
 
   useJobPoller(

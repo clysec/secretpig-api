@@ -65,6 +65,9 @@ func setupRouter(cfg *config.Config) *gin.Engine {
 	// ── Health (public) ───────────────────────────────────────────────────────
 	r.GET("/health", handlers.Health)
 
+	// ── Auth check (public) ───────────────────────────────────────────────────
+	r.GET("/api/check_auth", handlers.CheckAuth(cfg.Auth))
+
 	// ── Swagger UI (public) ───────────────────────────────────────────────────
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

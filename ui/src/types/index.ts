@@ -157,4 +157,18 @@ export interface FilterState {
   detectors: string[]           // empty = all
   verified: 'all' | 'verified' | 'unverified'
   sourceSearch: string          // substring match on source_name
+  jobId?: string                // filter to a specific scan job
+}
+
+// ── Scan history ──────────────────────────────────────────────────────────────
+
+export interface ScanHistoryEntry {
+  jobId: string
+  source: SourceType
+  label: string          // e.g. git URI, org name, bucket list
+  startedAt: string      // ISO-8601
+  endedAt?: string       // ISO-8601, set on completion
+  findingsCount: number
+  status: 'running' | 'completed' | 'failed'
+  error?: string
 }

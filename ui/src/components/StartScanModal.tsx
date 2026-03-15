@@ -2,7 +2,6 @@ import { useState, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { X, Loader2, AlertCircle } from 'lucide-react'
 import { api } from '../api/client'
-import { useJobPoller } from '../hooks/useJobPoller'
 import GlobalOptions from './forms/GlobalOptions'
 import GitForm from './forms/GitForm'
 import GitHubForm from './forms/GitHubForm'
@@ -36,8 +35,8 @@ const DEFAULT_DOCKER: DockerConfig   = { images: [] }
 interface Props {
   open: boolean
   onClose: () => void
-  onInstantResult: (findings: Finding[], jobId: string) => void
-  onBackgroundStart: (jobId: string) => void
+  onInstantResult: (findings: Finding[], jobId: string, req: ScanRequest) => void
+  onBackgroundStart: (jobId: string, req: ScanRequest) => void
 }
 
 export default function StartScanModal({
@@ -47,10 +46,10 @@ export default function StartScanModal({
   onBackgroundStart,
 }: Props) {
   const [source, setSource] = useState<SourceType>('git')
-  const [verify, setVerify] = useState(false)
+  const [verify, setVerify] = useState(true)
   const [filterUnverified, setFilterUnverified] = useState(false)
   const [concurrency, setConcurrency] = useState(8)
-  const [scanMode, setScanMode] = useState<ScanMode>('instant')
+  const [scanMode, setScanMode] = useState<ScanMode>('background')
 
   const [gitCfg,    setGitCfg]    = useState<GitConfig>(DEFAULT_GIT)
   const [ghCfg,     setGhCfg]     = useState<GitHubConfig>(DEFAULT_GITHUB)
@@ -61,25 +60,6 @@ export default function StartScanModal({
 
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
-  const [pollingId, setPollingId] = useState<string | null>(null)
-
-  useJobPoller(
-    pollingId,
-    job => {
-      onInstantResult(job.findings ?? [], job.id)
-      // Reset state then close. Call onClose() directly — handleClose() is
-      // gated on !loading so it would return early here.
-      setPollingId(null)
-      setLoading(false)
-      setError(null)
-      onClose()
-    },
-    msg => {
-      setPollingId(null)
-      setLoading(false)
-      setError(msg)
-    },
-  )
 
   function handleClose() {
     if (loading) return
@@ -131,13 +111,16 @@ export default function StartScanModal({
       if (scanMode === 'instant') {
         const result = await api.instant(req)
         const jobId = `instant-${crypto.randomUUID()}`
-        onInstantResult(result.findings ?? [], jobId)
-        handleClose()
+        onInstantResult(result.findings ?? [], jobId, req)
+        setLoading(false)
+        onClose()
+        setError(null)
       } else {
         const { job_id } = await api.startScan(req)
-        onBackgroundStart(job_id)
-        setPollingId(job_id)
-        // Keep modal open showing polling state — close happens in poller callback
+        onBackgroundStart(job_id, req)
+        setLoading(false)
+        onClose()
+        setError(null)
       }
     } catch (e) {
       setError(String(e))
@@ -220,14 +203,6 @@ export default function StartScanModal({
                   onChange={handleGlobalChange}
                 />
 
-                {/* Polling status */}
-                {pollingId && (
-                  <div className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3">
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Scan running… polling for results (job {pollingId.slice(0, 8)}…)</span>
-                  </div>
-                )}
-
                 {/* Error */}
                 {error && (
                   <div className="flex items-start gap-2 text-sm text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
@@ -250,7 +225,7 @@ export default function StartScanModal({
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <Loader2 size={15} className="animate-spin" />
-                      {pollingId ? 'Polling…' : 'Scanning…'}
+                      Scanning…
                     </span>
                   ) : (
                     'Run Scan'
