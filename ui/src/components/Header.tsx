@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Moon, Sun, ScanSearch, Clipboard, CheckCircle, AlertCircle } from 'lucide-react'
 import type { Theme } from '../hooks/useTheme'
 
@@ -13,16 +13,7 @@ export default function Header({ theme, onToggleTheme, onStartScan, onQuickScan 
   const [clipState, setClipState] = useState<'idle' | 'success' | 'error'>('idle')
   const [clipError, setClipError] = useState('')
 
-  async function handleQuickScan() {
-    let text = ''
-    try {
-      text = (await navigator.clipboard.readText()).trim()
-    } catch {
-      setClipError('Clipboard access denied')
-      setClipState('error')
-      setTimeout(() => setClipState('idle'), 3000)
-      return
-    }
+  const triggerScan = useCallback(async (text: string) => {
     if (!text) {
       setClipError('Clipboard is empty')
       setClipState('error')
@@ -38,6 +29,31 @@ export default function Header({ theme, onToggleTheme, onStartScan, onQuickScan 
       setClipState('error')
       setTimeout(() => setClipState('idle'), 3000)
     }
+  }, [onQuickScan])
+
+  // Also trigger on a global paste event (when not pasting into an input/textarea)
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      const text = e.clipboardData?.getData('text/plain').trim() ?? ''
+      triggerScan(text)
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [triggerScan])
+
+  async function handleQuickScan() {
+    let text = ''
+    try {
+      text = (await navigator.clipboard.readText()).trim()
+    } catch {
+      setClipError('Clipboard access denied')
+      setClipState('error')
+      setTimeout(() => setClipState('idle'), 3000)
+      return
+    }
+    triggerScan(text)
   }
 
   const clipIcon =
