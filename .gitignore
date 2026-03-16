@@ -20,3 +20,4 @@ ui/.env
 dist/
 !/config.example.*
 !/.goreleaser.yml
+!android
