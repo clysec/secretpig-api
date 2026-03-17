@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
 # Build the SecretPig server binary for Android (linux/arm64).
-# Output: android/app/src/main/assets/secretpig
+# Output: android/android/app/src/main/jniLibs/arm64-v8a/libsecretpig.so
 #
 # Prerequisites:
 #   - Go 1.21+
 #   - Run from the repo root: ./android/scripts/build-server.sh
 #   - libre2-dev is NOT needed because we use -tags purego (Go stdlib regexp)
 #
-# The binary is placed in assets/ so the Android app can extract it to the
-# private files directory at runtime and execute it.
+# The binary is packaged as a .so file in jniLibs/ so the Android package manager
+# extracts it to nativeLibraryDir (an exec-mounted path) on installation.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-OUT="${SCRIPT_DIR}/../android/app/src/main/assets/secretpig"
+OUT="${SCRIPT_DIR}/../android/app/src/main/jniLibs/arm64-v8a/libsecretpig.so"
+
+mkdir -p "$(dirname "${OUT}")"
 
 echo "Building SecretPig for linux/arm64 (Android)..."
 echo "  Source: ${REPO_ROOT}"

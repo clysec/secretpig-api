@@ -37,6 +37,7 @@ jobs:
 
       - name: Build bundled server binary (linux/arm64)
         run: |
+          mkdir -p android/android/app/src/main/jniLibs/arm64-v8a
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
             go build \
               -tags purego \
