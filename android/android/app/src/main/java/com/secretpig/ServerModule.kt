@@ -3,10 +3,9 @@ package com.secretpig
 import android.util.Log
 import com.facebook.react.bridge.*
 import java.io.File
-import java.io.FileOutputStream
 
 private const val TAG = "SecretPigServer"
-private const val BINARY_NAME = "secretpig"
+private const val BINARY_NAME = "libsecretpig.so"
 
 class ServerModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -15,15 +14,13 @@ class ServerModule(private val reactContext: ReactApplicationContext) :
 
     override fun getName(): String = "ServerModule"
 
-    /** Extract the bundled binary from assets to the app's private files dir if needed. */
-    private fun extractBinary(): File {
-        val dest = File(reactContext.filesDir, BINARY_NAME)
-        if (dest.exists() && dest.canExecute()) return dest
-        reactContext.assets.open(BINARY_NAME).use { input ->
-            FileOutputStream(dest).use { output -> input.copyTo(output) }
-        }
-        dest.setExecutable(true, true)
-        return dest
+    /**
+     * Return the binary installed by the package manager into the native library dir.
+     * That directory is exec-mounted, unlike filesDir which is noexec on Android 10+.
+     */
+    private fun getBinary(): File {
+        val nativeLibDir = reactContext.applicationInfo.nativeLibraryDir
+        return File(nativeLibDir, BINARY_NAME)
     }
 
     @ReactMethod
@@ -33,7 +30,7 @@ class ServerModule(private val reactContext: ReactApplicationContext) :
             return
         }
         try {
-            val binary = extractBinary()
+            val binary = getBinary()
             val env = mapOf(
                 "PORT" to port.toString(),
                 "GIN_MODE" to "release",
