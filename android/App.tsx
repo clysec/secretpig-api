@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { NativeModules, NativeEventEmitter, StatusBar } from 'react-native'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { NativeModules, NativeEventEmitter, StatusBar, AppState, type AppStateStatus } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -23,6 +23,9 @@ export default function App() {
   const [activeJobIds,  setActiveJobIds]  = useState<string[]>([])
   const [sharedUrl,     setSharedUrl]     = useState<string | null>(null)
   const [scanModalOpen, setScanModalOpen] = useState(false)
+  const [isLocal,       setIsLocal]       = useState(true)
+
+  const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Share intent handling ────────────────────────────────────────────────
   useEffect(() => {
@@ -50,8 +53,10 @@ export default function App() {
     ]).then(([mode, remoteUrl, token]) => {
       if (mode === 'remote' && remoteUrl) {
         setApiBaseUrl(remoteUrl)
+        setIsLocal(false)
       } else {
         setApiBaseUrl(`http://localhost:${serverMgr.port}`)
+        setIsLocal(true)
       }
       if (token) setApiToken(token)
     })
@@ -60,6 +65,42 @@ export default function App() {
   const addActiveJob    = useCallback((id: string) => setActiveJobIds(p => [...p, id]), [])
   const removeActiveJob = useCallback((id: string) => setActiveJobIds(p => p.filter(j => j !== id)), [])
   const clearSharedUrl  = useCallback(() => setSharedUrl(null), [])
+
+  // ── Server inactivity shutdown ────────────────────────────────────────────
+  const clearStopTimer = useCallback(() => {
+    if (stopTimerRef.current) {
+      clearTimeout(stopTimerRef.current)
+      stopTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleStop = useCallback((ms: number) => {
+    clearStopTimer()
+    stopTimerRef.current = setTimeout(() => { serverMgr.stop() }, ms)
+  }, [clearStopTimer, serverMgr])
+
+  // When all jobs finish, schedule an idle shutdown (5 min in foreground)
+  useEffect(() => {
+    if (!isLocal) return
+    if (activeJobIds.length === 0 && serverMgr.status === 'running') {
+      scheduleStop(5 * 60 * 1000)
+    } else {
+      clearStopTimer()
+    }
+  }, [activeJobIds, serverMgr.status, isLocal, scheduleStop, clearStopTimer])
+
+  // Shorten to 2 min when backgrounded, restore 5 min when foregrounded
+  useEffect(() => {
+    if (!isLocal) return
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if ((state === 'background' || state === 'inactive') && activeJobIds.length === 0) {
+        scheduleStop(2 * 60 * 1000)
+      } else if (state === 'active' && activeJobIds.length === 0 && serverMgr.status === 'running') {
+        scheduleStop(5 * 60 * 1000)
+      }
+    })
+    return () => { sub.remove(); clearStopTimer() }
+  }, [activeJobIds, serverMgr.status, isLocal, scheduleStop, clearStopTimer])
 
   const ctx = useMemo(() => ({
     ...findings,
@@ -100,6 +141,7 @@ export default function App() {
         <ScanFormModal
           visible={scanModalOpen}
           prefillUri={sharedUrl ?? undefined}
+          onBeforeScan={isLocal ? serverMgr.ensureRunning : undefined}
           onClose={() => { setScanModalOpen(false); clearSharedUrl() }}
           onInstantResult={(f, jobId) => {
             findings.addFindings(f, jobId)

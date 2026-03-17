@@ -7,6 +7,7 @@ export interface ServerManager {
   error: string | null
   start: () => Promise<void>
   stop: () => Promise<void>
+  ensureRunning: () => Promise<void>
   port: number
 }
 

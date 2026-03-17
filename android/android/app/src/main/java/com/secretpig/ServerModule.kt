@@ -32,7 +32,7 @@ class ServerModule(private val reactContext: ReactApplicationContext) :
         try {
             val binary = getBinary()
             val env = mapOf(
-                "PORT" to port.toString(),
+                "LISTEN_ADDR" to ":${port}",
                 "GIN_MODE" to "release",
                 "HOME" to reactContext.filesDir.absolutePath,
             )

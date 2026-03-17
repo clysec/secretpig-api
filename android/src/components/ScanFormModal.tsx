@@ -31,6 +31,8 @@ interface Props {
   onBackgroundStart: (jobId: string, source: SourceType, label: string) => void
   /** Pre-fill a Git URI (from share intent) */
   prefillUri?: string
+  /** Called before submitting — use to ensure local server is running */
+  onBeforeScan?: () => Promise<void>
 }
 
 const SOURCES: { key: SourceType; label: string; emoji: string }[] = [
@@ -42,7 +44,7 @@ const SOURCES: { key: SourceType; label: string; emoji: string }[] = [
   { key: 'docker',     label: 'Docker',     emoji: '🐳' },
 ]
 
-export function ScanFormModal({ visible, onClose, onInstantResult, onBackgroundStart, prefillUri }: Props) {
+export function ScanFormModal({ visible, onClose, onInstantResult, onBackgroundStart, prefillUri, onBeforeScan }: Props) {
   const [source,          setSource]          = useState<SourceType>('git')
   const [scanMode,        setScanMode]        = useState<ScanMode>('background')
   const [verify,          setVerify]          = useState(true)
@@ -104,6 +106,7 @@ export function ScanFormModal({ visible, onClose, onInstantResult, onBackgroundS
     const req = buildRequest()
 
     try {
+      await onBeforeScan?.()
       if (scanMode === 'instant') {
         const result = await api.instant(req)
         const jobId = `instant-${Date.now()}`
