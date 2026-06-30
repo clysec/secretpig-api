@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useTheme } from './hooks/useTheme'
 import { useFindings } from './store/useFindings'
 import { useScanHistory, labelForRequest } from './store/useScanHistory'
@@ -30,6 +30,12 @@ export default function App() {
 
   // Active (non-completed) job IDs tracked by JobsPanel
   const [activeJobIds, setActiveJobIds] = useState<string[]>([])
+
+  // Drag-and-drop state
+  const [isDragging, setIsDragging] = useState(false)
+  const [dropFeedback, setDropFeedback] = useState<'success' | 'error' | null>(null)
+  const [dropError, setDropError] = useState('')
+  const dragCounter = useRef(0)
 
   // Check auth requirements on mount
   useEffect(() => {
@@ -98,8 +104,77 @@ export default function App() {
     handleJobStarted(job_id, req)
   }
 
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault()
+    dragCounter.current++
+    if (dragCounter.current === 1) setIsDragging(true)
+  }
+
+  function handleDragLeave() {
+    dragCounter.current--
+    if (dragCounter.current === 0) setIsDragging(false)
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    dragCounter.current = 0
+    setIsDragging(false)
+
+    const raw = (
+      e.dataTransfer.getData('text/uri-list') ||
+      e.dataTransfer.getData('text/plain')
+    ).trim()
+    const url = raw.split(/\r?\n/).find(line => line.trim() && !line.startsWith('#')) ?? ''
+
+    if (!url) {
+      setDropError('No URL found in dropped content')
+      setDropFeedback('error')
+      setTimeout(() => setDropFeedback(null), 3000)
+      return
+    }
+
+    try {
+      await handleQuickScan(url)
+      setDropFeedback('success')
+      setTimeout(() => setDropFeedback(null), 2000)
+    } catch (err) {
+      setDropError(String(err))
+      setDropFeedback('error')
+      setTimeout(() => setDropFeedback(null), 3000)
+    }
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col"  
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}>
+      {isDragging && (
+        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
+          <div className="absolute inset-3 rounded-2xl border-4 border-dashed border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/20 transition-opacity" />
+          <div className="relative text-center">
+            <div className="text-5xl mb-3">🔗</div>
+            <p className="text-xl font-semibold text-indigo-700 dark:text-indigo-300">Drop URL to scan</p>
+            <p className="text-sm text-indigo-500 dark:text-indigo-400 mt-1">Starts a background Git scan</p>
+          </div>
+        </div>
+      )}
+
+      {dropFeedback && (
+        <div className={`fixed bottom-4 right-4 z-50 rounded-lg px-4 py-2.5 text-sm font-medium shadow-lg transition-opacity ${
+          dropFeedback === 'success'
+            ? 'bg-green-600 text-white'
+            : 'bg-red-600 text-white'
+        }`}>
+          {dropFeedback === 'success' ? '✓ Scan queued' : `✗ ${dropError}`}
+        </div>
+      )}
       <Header
         theme={theme}
         onToggleTheme={toggle}
